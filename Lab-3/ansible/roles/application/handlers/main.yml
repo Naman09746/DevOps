@@ -1,0 +1,5 @@
+---
+- name: restart_stack
+  command: docker compose restart
+  args:
+    chdir: "{{ playbook_dir }}/../monitoring"

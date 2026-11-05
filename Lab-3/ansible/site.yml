@@ -1,0 +1,6 @@
+---
+- name: Provision Infrastructure & Deploy Observability Stack
+  hosts: webservers
+  become: true
+  roles:
+    - application

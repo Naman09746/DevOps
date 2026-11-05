@@ -1,0 +1,31 @@
+---
+- name: Ensure required packages are installed
+  apt:
+    name:
+      - ca-certificates
+      - curl
+      - git
+      - docker.io
+    state: present
+    update_cache: yes
+
+- name: Ensure Docker service is running and enabled
+  service:
+    name: docker
+    state: started
+    enabled: yes
+
+- name: Deploy application stack via Docker Compose
+  command: docker compose up -d
+  args:
+    chdir: "{{ playbook_dir }}/../monitoring"
+  notify: restart_stack
+
+- name: Verify application endpoint is healthy
+  uri:
+    url: "http://localhost:5000/health"
+    status_code: 200
+  register: result
+  until: result.status == 200
+  retries: 5
+  delay: 3
