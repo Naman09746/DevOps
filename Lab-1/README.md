@@ -15,4 +15,3 @@ This folder contains the complete, verified implementation and final submission 
 - **Containerization (`Dockerfile`)**: Container definition based on `python:3.10-slim`.
 - **Pipeline as Code (`Jenkinsfile`)**: Declarative 6-stage CI/CD pipeline.
 - **Submission PDFs (`submissions/`)**: Final academic submission reports for Questions 1 through 7.
-- **Evidence (`screenshots/`)**: Authentic execution evidence screenshots.
