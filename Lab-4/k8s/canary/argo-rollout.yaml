@@ -1,0 +1,44 @@
+# Argo Rollouts Cloud-Native Canary CRD
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: enterprise-app-rollout
+  namespace: default
+spec:
+  replicas: 5
+  strategy:
+    canary:
+      canaryService: enterprise-app-canary-svc
+      stableService: enterprise-app-stable-svc
+      trafficRouting:
+        nginx:
+          stableIngress: enterprise-app-ingress-production
+      steps:
+        - setWeight: 10
+        - pause: { duration: 2m }
+        - setWeight: 25
+        - pause: { duration: 5m }
+        - setWeight: 50
+        - pause: { duration: 10m }
+        - setWeight: 100
+  selector:
+    matchLabels:
+      app: enterprise-app
+  template:
+    metadata:
+      labels:
+        app: enterprise-app
+    spec:
+      containers:
+        - name: app
+          image: ghcr.io/naman09746/enterprise-service:2.0.0
+          ports:
+            - containerPort: 8080
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8080

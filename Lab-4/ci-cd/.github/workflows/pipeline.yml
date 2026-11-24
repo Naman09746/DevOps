@@ -1,0 +1,81 @@
+name: Enterprise CI/CD & GitOps Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: naman09746/enterprise-service
+
+jobs:
+  lint-and-test:
+    name: Code Quality & Automated Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r Lab-4/app/requirements.txt
+
+      - name: Run Pytest Suite with Coverage
+        run: |
+          cd Lab-4
+          python -m pytest -v --cov=app --cov-report=term-missing tests/
+
+  security-scan:
+    name: DevSecOps Vulnerability & Secret Audit
+    needs: lint-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Scan Secrets & Passwords (Gitleaks / Mock)
+        run: |
+          echo "Scanning repository for leaked credentials..."
+          ! grep -rn "SUPER_SECRET_LEAK" Lab-4/app/
+
+      - name: Run SAST Security Scan
+        run: |
+          pip install bandit
+          bandit -r Lab-4/app/ -ll
+
+  build-and-package:
+    name: Multi-Stage Container Build
+    needs: security-scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Build Container Image
+        run: |
+          cd Lab-4/app
+          docker build -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} .
+          docker tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+
+  gitops-reconciliation:
+    name: GitOps Deployment Sync
+    needs: build-and-package
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout GitOps Manifests
+        uses: actions/checkout@v4
+
+      - name: Update Kubernetes Kustomize Image Tag
+        run: |
+          echo "Updating deployment image to: ${{ env.IMAGE_NAME }}:${{ github.sha }}"
+          sed -i "s|image: ghcr.io/naman09746/enterprise-service:.*|image: ghcr.io/naman09746/enterprise-service:${{ github.sha }}|g" Lab-4/k8s/base/deployment.yaml
+          echo "ArgoCD will automatically reconcile desired state with cluster."

@@ -1,0 +1,33 @@
+# Velero Automated Disaster Recovery & Persistent Volume Backup Specification
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: enterprise-daily-full-backup
+  namespace: velero
+spec:
+  # Daily snapshot at 01:00 UTC
+  schedule: "0 1 * * *"
+  template:
+    includedNamespaces:
+      - default
+      - ingress-nginx
+      - monitoring
+    includeClusterResources: true
+    snapshotVolumes: true
+    ttl: 720h0m0s # 30-day retention policy
+    storageLocation: default-s3-backup-bucket
+    volumeSnapshotLocations:
+      - default-aws-snapshot-location
+---
+apiVersion: velero.io/v1
+kind: BackupStorageLocation
+metadata:
+  name: default-s3-backup-bucket
+  namespace: velero
+spec:
+  provider: aws
+  objectStorage:
+    bucket: enterprise-k8s-disaster-recovery-vault
+    prefix: prod-cluster-backups
+  config:
+    region: ap-south-1

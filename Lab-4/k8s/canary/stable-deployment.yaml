@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: enterprise-app-stable
+  namespace: default
+  labels:
+    app: enterprise-app
+    track: stable
+    version: "1.0.0"
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: enterprise-app
+      track: stable
+  template:
+    metadata:
+      labels:
+        app: enterprise-app
+        track: stable
+        version: "1.0.0"
+    spec:
+      containers:
+        - name: app
+          image: ghcr.io/naman09746/enterprise-service:1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: APP_VERSION
+              value: "1.0.0"
+            - name: ENVIRONMENT
+              value: "production"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 3
